@@ -164,26 +164,33 @@ const
 //CREATE UNIQUE INDEX UID_IM ON UserBase(IMTYPE,UID)
 }
   SQLCreateHistTable : AnsiString =
-   'CREATE TABLE History (' +
-   ' MSG_TIME DOUBLE NOT NULL,'+
-   ' ISSEND INTEGER,' +
-   ' IMTYPE INTEGER NOT NULL, ' +CRLF+
-   ' FROM_UID TEXT NOT NULL ON CONFLICT FAIL,'+
-   ' TO_UID TEXT NOT NULL ON CONFLICT FAIL,'+
-   ' kind integer NOT NULL,'+
-   ' flags integer,'+
-   ' info binary,'+
-//   ' msg text);';
-   ' msg text'+CRLF+
-   ', PRIMARY KEY (MSG_TIME, FROM_UID, TO_UID, ISSEND) '+
-   ' ); '
+   'CREATE TABLE IF NOT EXISTS "Conversations" ('
+        + '"Chat" TEXT NOT NULL,'
+        + '"When" DATETIME NOT NULL,'
+        + '"Who" TEXT NOT NULL,'
+        + '"Kind" INTEGER NOT NULL,'
+        + '"Text" TEXT,'
+        + '"Binary" BLOB,'
+        + '"Flags" INTEGER DEFAULT 0,'
+        + '"Out" INTEGER,'
+        + '"WID" GUID,'
+        + '"MsgID" INTEGER);' + CRLF
+    +'CREATE INDEX "timeindex" ON "Conversations" ("Chat", "When");'
+//    +'CREATE INDEX "chatindex" ON "Conversations" ("Chat");'
+//   ', PRIMARY KEY (MSG_TIME, FROM_UID, TO_UID, ISSEND) '+
 //   ' CREATE INDEX MSG_UID ON History(FROM_UID, TO_UID)'
   ;
-
+{
   SQLInsertHistory =
    'INSERT INTO History (' +
    ' MSG_TIME, ISSEND, IMTYPE, FROM_UID, TO_UID, kind, flags, info, msg) ' +
    ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)';
+}
+  SQLInsertHistory =
+   'INSERT INTO Conversations (' +
+   ' "Chat", "when", "who", "kind", "flags", "Binary", "Text", "out") ' +
+   ' VALUES(?, ?, ?, ?, ?, ?, ?, ?)';
+
   SQLDeleteHistoryWith =
    'DELETE History WHERE FROM_UID = "%s" or TO_UID = "%s"';
   SQLSelectHistoryWith =

@@ -117,9 +117,9 @@ end;
 
 procedure TImpForm.FormCreate(Sender: TObject);
 begin
-  myPath:=ExtractFilePath(paramStr(0));
+  myPath := ExtractFilePath(paramStr(0));
 //  loadLanguage;
-
+  RnQDirEdt.Text := myPath;
 end;
 
 procedure TImpForm.ImpExpGrpClick(Sender: TObject);
@@ -142,6 +142,7 @@ procedure TImpForm.RnQDirBtnClick(Sender: TObject);
 var
   DirName : String;
 begin
+  DirName := RnQDirEdt.Text;
   if OpenDirDialog(Self.Handle, 'Select directory with your profile', DirName) then
    RnQDirEdt.Text := DirName;
 end;

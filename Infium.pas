@@ -177,7 +177,7 @@ begin
 //          msg:=msg+' '+qhfrec[i].recordmessage;
 
   //        AddColoredLine(output,msg,fontcolor[qhfrec[i].recordinout],fontsize[qhfrec[i].recordinout], fontstyle[qhfrec[i].recordinout], fontname[qhfrec[i].recordinout]);
-          InsertHist(Ev);
+          InsertHist(uin, Ev);
           Application.ProcessMessages;
       finally
        ev.free;    

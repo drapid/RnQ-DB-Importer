@@ -1083,20 +1083,21 @@ var
 //  cur:integer;
 var
   cryptMode :byte;
-  len : Int64;
+  len, rows : Int64;
   s : AnsiString;
 //  iu : TUID;
   myNum : Integer; 
   i : Integer;
-  a,b : Integer;
+  a, b : Integer;
   DecrKey : Integer;
   curPos : Int64;
 begin
 //  loading := True;
  try
 //  cur:=1;
+   rows := 0;
   myNUM := StrToIntDef(myUID, 0);
-  cryptMode:=CRYPT_SIMPLE;
+  cryptMode := CRYPT_SIMPLE;
 //  hashed:='';
   str2 := GetStream(path + fn);
   Cnt2I := 0;
@@ -1118,7 +1119,7 @@ begin
   if len > 0 then
   repeat
   begin
-   ev:=Thevent.Create;
+   ev := Thevent.Create;
    try
        ev.ID := Max_Event_ID;
     //  FillChar(Ev, sizeOf(Ev), #0);
@@ -1206,7 +1207,8 @@ begin
 //           inf := ev.info;
           end;
 
-            InsertHist(Ev);
+            if InsertHist(fn, Ev) then
+              inc(rows);
             Application.ProcessMessages;
           end;
     //    HI_hashed: hashed:=getString;

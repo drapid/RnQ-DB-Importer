@@ -74,7 +74,7 @@ type
 
   procedure beforeInsertHistory;
   procedure AfterInsertHistory;
-  function InsertHist(ev :Thevent) : Boolean;
+  function InsertHist(ChatName: String; ev: Thevent): Boolean;
 
   procedure beforeInsertCList;
   procedure AfterInsertCList;
@@ -218,11 +218,13 @@ begin
   execSQL(mineDB, 'COMMIT TRANSACTION');
 end;
 
-function InsertHist(ev :Thevent) : Boolean;
+function InsertHist(ChatName: String; ev: Thevent): Boolean;
 var
   sel, sub : string;
 //  msg, inf : String;
 //  I: Integer;
+  res: Integer;
+  ChatNameU: RawByteString;
 begin
 //  Sel := format(SQLUpdateContact, [Field, val, cntID]);
    Result := false;
@@ -244,17 +246,21 @@ begin
 //         InsHistStmt.Bind_Str(7, ev.Text);
          InsHistStmt.Bind_Str16(9, ev.Text);
 }
-         sqlite3_bind_Double(InsHistStmt, 1, DateTimeToJulianDate(ev.when));
-         SQLite3_Bind_Int(InsHistStmt, 2, ev.isSend);
-         SQLite3_Bind_Int(InsHistStmt, 3, ev.im);
-         SQLite3_Bind_text(InsHistStmt, 4, PAnsiChar(ev.who), Length(ev.who), nil);
-         SQLite3_Bind_text(InsHistStmt, 5, PAnsiChar(ev.whom), Length(ev.whom), nil);
-         SQLite3_Bind_Int(InsHistStmt, 6, ev.kind);
-         SQLite3_Bind_Int(InsHistStmt, 7, ev.flags);
+         ChatNameU := UTF8Encode(ChatName);
+         SQLite3_Bind_Text(InsHistStmt, 1, PAnsiChar(ChatNameU), Length(ChatNameU), nil);
+         sqlite3_bind_Double(InsHistStmt, 2, DateTimeToJulianDate(ev.when));
+         SQLite3_Bind_text(InsHistStmt, 3, PAnsiChar(ev.who), Length(ev.who), nil);
+         SQLite3_Bind_Int(InsHistStmt, 4, ev.kind);
+         SQLite3_Bind_Int(InsHistStmt, 5, ev.flags);
+         SQLite3_Bind_Blob(InsHistStmt, 6, PAnsiChar(ev.Bin), Length(ev.Bin), nil);
+         SQLite3_Bind_text(InsHistStmt, 7, PAnsiChar(ev.TextUTF), Length(ev.TextUTF), nil);
+//         if ev.isSend = 1 then
+           SQLite3_Bind_Int(InsHistStmt, 8, ev.isSend)
+//          else
+//           SQLite3_Bind_Null(InsHistStmt, 8);
+//         SQLite3_Bind_Int(InsHistStmt, 3, ev.im);
 
-         SQLite3_Bind_Blob(InsHistStmt, 8, PAnsiChar(ev.Bin), Length(ev.Bin), nil);
 //         SQLite3_Bind_text16(InsHistStmt, 9, PWideChar(ev.Text), (Length(ev.Text)+1)*2, nil);
-         SQLite3_Bind_text(InsHistStmt, 9, PAnsiChar(ev.TextUTF), Length(ev.TextUTF), nil);
 
 //        Stmt.Bind_Str(1, Field);
 //         case Fields[i].val_type of
@@ -265,8 +271,9 @@ begin
 
         end;
 //       Stmt.bind_Int64(Length(Fields)+1, cntID);
-//       if InsHistStmt.Step = SQLITE_ROW then
-       if Sqlite3_Step(InsHistStmt) = SQLITE_ROW then
+//       res := InsHistStmt.Step
+       res := Sqlite3_Step(InsHistStmt);
+       if res = SQLITE_ROW then
          begin
            Result := True;
          end;

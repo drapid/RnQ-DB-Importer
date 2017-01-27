@@ -13,7 +13,7 @@ const
     ' [DESC] CHAR(20) NOT NULL ON CONFLICT IGNORE,' + CRLF +
     ' CONSTRAINT [CLIST_TYPES_PK] PRIMARY KEY ([ID] COLLATE BINARY) ON CONFLICT IGNORE);';
 
-  SQLData_CLIST_TYPES : AnsiString =
+  SQLData_CLIST_TYPES: AnsiString =
     'INSERT INTO [CLIST_TYPES] '+CRLF+
     ' SELECT 1, ''ROSTER'' UNION '+CRLF+
     ' SELECT 2, ''VISIBLE'' UNION '+CRLF+
@@ -73,7 +73,7 @@ const
     'CREATE TABLE IF NOT EXISTS Pref ('+CRLF+
     '  key TEXT UNIQUE PRIMARY KEY,'+CRLF+
     '  val_type INTEGER(1),'+CRLF+
-    '  val TEXT);';
+    '  val BLOB);';
   SQLInsertPref : AnsiString = 'INSERT INTO Pref VALUES(?, ?, ?);';
 
   SQLCreateExStsTable : AnsiString =
@@ -188,27 +188,27 @@ const
 }
   SQLInsertHistory =
    'INSERT INTO Conversations (' +
-   ' "Chat", "when", "who", "kind", "flags", "Binary", "Text", "out") ' +
-   ' VALUES(?, ?, ?, ?, ?, ?, ?, ?)';
+   ' "Chat", "when", "who", "kind", "flags", "Binary", "Text", "out", WID) ' +
+   ' VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
-  SQLDeleteHistoryWith =
-   'DELETE History WHERE FROM_UID = "%s" or TO_UID = "%s"';
+  SQLDeleteHistoryWith: AnsiString =
+   'DELETE Conversations WHERE "Chat" = "%s"';
   SQLSelectHistoryWith =
    'SELECT MSG_TIME, ISSEND, IMTYPE, FROM_UID, TO_UID, kind, flags, info, msg '+
-    ' FROM History WHERE FROM_UID = "%s" or TO_UID = "%s" ORDER BY MSG_TIME';
+    ' FROM History WHERE "Chat" = "%s" ORDER BY MSG_TIME';
 
   SQLInsertContact =
 //    'INSERT INTO UserBase (IMTYPE, UID) VALUES(%d, ''%s'')';
     'INSERT INTO OscarBase (UID) VALUES(''%s'')';
-  SQLUpdateOscarCnt =
+  SQLUpdateOscarCnt: AnsiString =
 //    'UPDATE UserBase set "%s" = ''%s'' WHERE idx = %d';
 //    'UPDATE OscarBase set ? = ? WHERE rowid = ?;';
     'UPDATE OscarBase set "%s" = ? WHERE rowid = ?;';
-  SQLUpdateOscarCnt2 =
+  SQLUpdateOscarCnt2: AnsiString =
     'UPDATE OscarBase set "%s" = ''%s'' WHERE rowid = %d';
-  SQLUpdateOscarCnt3 =
+  SQLUpdateOscarCnt3: AnsiString =
     'UPDATE OscarBase set "%s" = ''%d'' WHERE rowid = %d';
-  SQLUpdateOscarCnt10 =
+  SQLUpdateOscarCnt10: AnsiString =
 //    'UPDATE UserBase set "%s" = ''%s'' WHERE idx = %d';
 //    'UPDATE OscarBase set ? = ? WHERE rowid = ?;';
     'UPDATE OscarBase set %s WHERE rowid = ?;';

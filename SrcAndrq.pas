@@ -7,9 +7,9 @@ uses
   Dialogs, StdCtrls, ExtCtrls, ComCtrls;
 
 
-  function ImportFromAndrq(srcPth : string; memo : TMemo) : Boolean;
-//  function  str2int(s:RawByteString):integer; overload;
-//  function  str2int(p:pointer):integer; overload;
+  function ImportFromAndrq(srcPth: string; memo: TMemo): Boolean;
+//  function  str2int(s: RawByteString): integer; overload;
+//  function  str2int(p: pointer): integer; overload;
 (*
   function StrToUTF8(const Value: AnsiString): RawByteString; OverLoad;
  {$IFDEF UNICODE}
@@ -23,6 +23,7 @@ implementation
     RnQZip, //historyrnq,
 //    RnQDialogs, RQUtil,
 //    RQUtil,
+    RnQCrypt,
     RnQLangs,
     RDUtils, RnQBinUtils,
     RnQ2sql,
@@ -77,284 +78,11 @@ const
   SysCList_Reopen  = 8;
   SysCList_ChkInvis= 9;
 
-
+type
+  TUID = String;
+  {$DEFINE UID_IS_UNICODE}
 var
-  myUID : AnsiString;
-
-
-{Convert string from UTF-8 format into ASCII}
-{function UTF8ToStr(const Value: AnsiString): AnsiString;
-var
-  buffer: Pointer;
-  BufLen: LongWord;
-begin
-  BufLen := Length(Value) + 4;
-  GetMem(buffer, BufLen);
-  FillChar(buffer^, BufLen, 0);
-  MultiByteToWideChar(CP_UTF8, 0, @Value[1], BufLen - 4, buffer, BufLen);
-  Result := WideCharToString(buffer);
-  FreeMem(buffer, BufLen);
-end;
-{function UTF8ToStr(const Value: AnsiString): String;
-var
-  buffer: Pointer;
-  BufLen: LongWord;
-  str : AnsiString;
-begin
-  BufLen := Length(Value) + 4;
-  GetMem(buffer, BufLen);
-  FillChar(buffer^, BufLen, 0);
-  MultiByteToWideChar(CP_UTF8, 0, @Value[1], BufLen - 4, buffer, BufLen);
-  Result := WideCharToString(buffer);
-  FreeMem(buffer, BufLen);
-end;}
-(*
-{Convert string from UTF-8 format into ASCII}
-function UTF8ToStr(const Value: RawByteString): String;
-const
-  MB_ERR_INVALID_CHARS         = 8;
-var
-  buffer: Pointer;
-  BufLen: LongWord;
-//  str : AnsiString;
-  l : Integer;
-begin
-  if Value = '' then
-   begin
-    Result := '';
-    Exit;
-   end;
-  BufLen := Length(Value)*2 + 6;
-  GetMem(buffer, BufLen);
-  FillChar(buffer^, BufLen, 0);
-//  MultiByteToWideChar(CP_UTF8, 0, @Value[1], BufLen - 4, buffer, BufLen);
- {$IFDEF UNICODE}
-  l := MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, PAnsiChar(Value), Length(Value), buffer, BufLen);
-//  l := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(Value), Length(Value), buffer, BufLen);
- {$else nonUNICODE}
-  l := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(Value), Length(Value), buffer, BufLen);
- {$ENDIF UNICODE}
-//  Result := WideCharToString(buffer);
-//  WideCharLenToStrVar(buffer,
-//  str := LStrFromPWChar(buffer);
-//  str := PWideChar(buffer);
-  if l > 0 then
-    Result := WideCharToString(buffer)
-   else
-    Result := '';
-//  Result := str;
-  FreeMem(buffer, BufLen);
-end;
-
-{Convert string from UTF-8 format mixed with standart ASCII symbols($00..$7f)}
-function UTF8ToStrSmart(const Value: RawByteString): String;
-var
-  Digit: AnsiString;
-  str : String;
-  i: Word;
-  HByte: Byte;
-  Len: Byte;
-begin
-  Result := '';
-  if Value = '' then Exit;
-  Len := 0;
- {$IFNDEF UNICODE}
-  str := UTF8Decode(Value);
- {$else UNICODE}
-  str := UTF8ToStr(Value);
- {$ENDIF UNICODE}
-  If (str='')or(str = value) Then
-   Begin
-    Result:=Value;
-    Exit
-   End;
-  for i := 1 to Length(Value) do
-  begin
-    if Len > 0 then
-    begin
-      Digit := Digit + Value[i];
-      Dec(Len);
-      if Len = 0 then
-       begin
-        str := UTF8ToStr(Digit);
-        if str > '' then
-          Result := Result + str
-        else
-          Result := Result + Digit;
-       end;
-    end else
-    begin
-      HByte := byte(Value[i]);
-      if HByte in [$00..$7f] then       //Standart ASCII chars
-        Result := Result + Value[i]
-      else begin
-        //Get length of UTF-8 char
-        if HByte and $FC = $FC then
-          Len := 6
-        else if HByte and $F8 = $F8 then
-          Len := 5
-        else if HByte and $F0 = $F0 then
-          Len := 4
-        else if HByte and $E0 = $E0 then
-          Len := 3
-        else if HByte and $C0 = $C0 then
-          Len := 2
-        else begin
-          Result := Result + Value[i];
-          Continue;
-        end;
-        Dec(Len);
-        Digit := Value[i];
-      end;
-    end;
-  end;
-end;
-
-procedure StrSwapByteOrder(Str: PWideChar);
-// exchanges in each character of the given string the low order and high order
-// byte to go from LSB to MSB and vice versa.
-// EAX contains address of string
-asm
-       PUSH    ESI
-       PUSH    EDI
-       MOV     ESI, EAX
-       MOV     EDI, ESI
-       XOR     EAX, EAX // clear high order byte to be able to use 32bit operand below
-@@1:
-       LODSW
-       OR      EAX, EAX
-       JZ      @@2
-       XCHG    AL, AH
-       STOSW
-       JMP     @@1
-@@2:
-       POP     EDI
-       POP     ESI
-end;
-
-{function UnUTF(const s : AnsiString) : WideString;
-var
-//  ss : RawString;
-  ss : AnsiString;
-begin
-//  result := s;
-  if (Length(s) > 1)
-     and ((s[1] < #5)or(s[2] < #5) or((s[1] = #255)and (s[2] = #254)))
-     and not odd(Length(s)) then
-   begin
-     Result := PWideChar(s);
-     if (s[1] < #5) then
-      begin
-       StrSwapByteOrder(PWideChar(result));
-      end;
-   end
-   else
-    begin
-      ss := UTF8ToStrSmart(s);
-    result := ss;
-    end;
-end;}
-
-procedure SwapWordByteOrder(P: PAnsiChar; Len: Cardinal);
-var
-  B: AnsiChar;
-begin
-  while Len > 0 do
-  begin
-    B := P[0];
-    P[0] := P[1];
-    P[1] := B;
-    Inc(P, 2);
-    Dec(Len, 2);
-  end;
-end;
-
-function UnUTF(const s : AnsiString) : String;
-{$IFNDEF UNICODE}
-var
-//  ss : RawString;
-  ss : AnsiString;
-{$ENDIF UNICODE}
-begin
-//  result := s;
-  if (Length(s) > 1)
-     and ((s[1] < #5)or(s[2] < #5) or((s[1] = #255)and (s[2] = #254)))
-     and not odd(Length(s)) then
-   begin
-   {$IFDEF UNICODE}
-     Result := PWideChar(s);
-     if (s[1] < #5) then
-      begin
-//        StrSwapByteOrder(PWideChar(result));
-//        SwapShort(@Result[1], ByteLength(Result));
-        SwapWordByteOrder(PAnsiChar(Result), ByteLength(Result));
-      end;
-   {$ELSE nonUNICODE}
-     ss := s;
-     if (ss[1] < #5) then
-//      StrSwapByteOrder(PWideChar(ss));
-//       SwapShort(@ss[1], Length(ss));
-       SwapWordByteOrder(PAnsiChar(ss), Length(ss));
-     result := WideCharToString(PWidechar(ss));
-   {$ENDIF UNICODE}
-   end
-   else
-    result := UTF8ToStrSmart(s);
-//    result := UTF8ToStrSmart2(s);
-end;
-
-{Convert string to UTF8 format}
-function StrToUTF8(const Value: AnsiString): RawByteString;
-var
-  buffer: Pointer;
-  ResLen, BufLen: LongWord;
-//  lpBuf: Pointer;
-begin
-  if Value='' then
-   begin
-    Result := '';
-    exit;
-   end;
-  BufLen := Length(Value) * 4;
-  GetMem(buffer, BufLen); FillChar(buffer^, BufLen, 0);
-//  GetMem(lpBuf, BufLen); FillChar(lpBuf^, BufLen, 0);
-  SetLength(Result, BufLen);
-  StringToWideChar(Value, buffer, BufLen);
-  ResLen := WideCharToMultiByte(CP_UTF8, 0, buffer, -1, PAnsiChar(Result), BufLen, nil, nil);
-  FreeMem(buffer, BufLen);
-
-  SetLength(Result, ResLen-1);
-//  CopyMemory(@Result[1], lpBuf, ResLen);
-//  Result := PAnsiChar(lpBuf);
-//  FreeMem(lpBuf, BufLen);
-end;
-
- {$IFDEF UNICODE}
-function StrToUTF8(const Value: UnicodeString): RawByteString;
-var
-//  buffer: Pointer;
-  ResLen, BufLen: LongWord;
-//  lpBuf: Pointer;
-begin
-  if Value='' then
-    exit('');
-  BufLen := Length(Value) * 4;
-//  GetMem(buffer, BufLen); FillChar(buffer^, BufLen, 0);
-//  GetMem(lpBuf, BufLen); FillChar(lpBuf^, BufLen, 0);
-//  StringToWideChar(Value, buffer, BufLen);
-//  Buffer := @Value[1];
-  SetLength(Result, BufLen);
-  ResLen := WideCharToMultiByte(CP_UTF8, 0, @Value[1], Length(Value), PAnsiChar(Result), BufLen, nil, nil);
- // ResLen includes the byte for the terminating null character.
-
- //  FreeMem(buffer, BufLen);
-//  Result := PAnsiChar(lpBuf);
-//  FreeMem(lpBuf, BufLen);
-  SetLength(Result, ResLen); //
-end;
- {$ENDIF UNICODE}
-
-*)
+  myUID: TUID;
 
 const
   DBFK_OLDUIN      = 00;
@@ -415,17 +143,17 @@ const
   DBFK_MARSTATUS   = 120;
 *)
 
-function str2db(const s:RawByteString; var resStr : string) : Boolean;
+function str2db(const s: RawByteString; var resStr: string): Boolean;
 //var
 //  fields : TupdFields;
 //  dat   : TDate;
 //  c:Tcontact;
-  function getDateTime(const str : RawByteString) : TDateTime; Inline;
+  function getDateTime(const str: RawByteString): TDateTime; Inline;
    begin
      system.move(str[1], Result, 8);
    end;
   function InsertDBval(const pUID, pNICK, pFIRST, pLAST, pDISPLAY : String;
-                       pSENDTRANSL : Byte; pBIRTHL : TDate;
+                       pSENDTRANSL : Byte; pBIRTHL: TDate;
                        const pData : RawByteString) : Boolean;
   var
 //    InsDBStmt : sqlite3_stmt;
@@ -582,7 +310,7 @@ begin
 end; // loadDB
 *)
 
-function CList_fromString(ListType : Byte; const s: RawByteString):boolean;
+function CList_fromString(ListType: Byte; const s: RawByteString): boolean;
 var
   i:integer;
   s1 : AnsiString;
@@ -883,14 +611,14 @@ function LoadAvt(pth : String) : Boolean;
   end;
 
 var
-  vPath : String;
-  sr:TsearchRec;
-  bFile : RawByteString;
-  bType : Byte;
-  cnt : Integer;
+  vPath: String;
+  sr: TsearchRec;
+  bFile: RawByteString;
+  bType: Byte;
+  cnt: Integer;
 //var
-//  sel, sub : string;
-//  msg, inf : String;
+//  sel, sub: string;
+//  msg, inf: String;
 //  I: Integer;
 begin
    Result := false;
@@ -935,7 +663,7 @@ begin
 end;
 
 
-function  GetStream(fn : String) : TStream;
+function  GetStream(fn: String): TStream;
 //var
 // fs : TFileStream;
 begin
@@ -950,82 +678,45 @@ end;
 
   function dupString(s: RawByteString): RawByteString;
   begin result:=copy(s,1,length(s)) end;
-
-   procedure decritt(var s: RawByteString; key:integer); assembler; register;
-     asm
-     mov ecx, key
-     mov dl, cl
-     shr ecx, 20
-     mov dh, cl
-
-     mov esi, s
-     mov esi, [esi]
-     or  esi, esi    // nil string
-     jz  @OUT
-     mov ah, 10111000b
-
-     mov ecx, [esi-4]
-     or  ecx, ecx
-     jz  @OUT
-   @IN:
-     mov al, [esi]
-     xor al, ah
-     rol al, 3
-     xor al, dh
-     sub al, dl
-
-     mov [esi], al
-     inc esi
-     ror ah, 3
-     dec ecx
-     jnz @IN
-   @OUT:
-   end; // decritt
-
-  function decritted(s: RawByteString; key:integer): RawByteString;
-  begin
-   result:=dupString(s);
-   decritt(result, key);
-  end;
-
-function LoadHistoryFile(path, fn : string) : Boolean;
+function LoadHistoryFile(path, fn: string): Boolean;
 const
-  EI_flags=1;
-  EI_UID = 11;
+  EI_flags = 1;
+  EI_UID   = 11;
+  EI_WID   = 12;
 
 const
   Max_Event_ID = 1000000;
-  CRYPT_SIMPLE=0;
-  CRYPT_KEY1=1;
+  CRYPT_SIMPLE = 0;
+  CRYPT_KEY1 = 1;
   HI_event=-1;
   HI_hashed=-2;
   HI_cryptMode=-3;
 
 //  function getByte:byte;
-  function getByte(str : TMemoryStream):byte; inline;
+  function getByte(str: TMemoryStream): byte; inline;
   begin
     str.Read(result, 1);
 //    inc(cur)
   end;
 
 //  function getDatetime:Tdatetime;
-  function getDatetime(str : TMemoryStream):Tdatetime; inline;
+  function getDatetime(str: TMemoryStream): Tdatetime; inline;
   begin
     str.Read(result, 8);
 //    inc(cur,8)
   end;
 
 //  function getInt:integer;
-  function getInt(str : TMemoryStream):integer; inline;
+  function getInt(str: TMemoryStream): integer; inline;
   begin
     str.Read(result, 4);
 //    inc(cur,4);
   end;
 
 //  function getString: RawByteString;
-  function getString(str : TMemoryStream): RawByteString; inline;
+  function getString(str: TMemoryStream): RawByteString; inline;
   var
-    i : Integer;
+    i: Integer;
   begin
 //    i := getInt;
     i := getInt(str);
@@ -1035,62 +726,79 @@ const
   end;
 
 var
-  ev:Thevent;
-  str:TMemoryStream;
+  ev: Thevent;
+  str: TMemoryStream;
 
   procedure parseExtrainfo;
   var
-    code,next,extraEnd:integer;
-    cur : Integer;
-    s : AnsiString;
+    code, next, extraEnd: integer;
+    cur: Integer;
+    s: RawByteString;
+    len: Integer;
+    uid: TUID;
   begin
     cur := 1;
     extraEnd := 4+getInt(str);
     inc(cur, 4);
   while cur < extraEnd do
     begin
-    code:=getInt(str);
+      code := getInt(str);
     inc(cur, 4);
-//    inc(cur, 4);
-    next:=cur+ getInt(str) + 4;
+  //    inc(cur, 4);
+      len := getInt(str);
+      next := cur + len + 4;
     case code of
       EI_flags:
         begin
-         ev.flags:=getInt(str);
-//         inc(cur, 4);
+           ev.flags := getInt(str);
+  //         inc(cur, 4);
         end;
       EI_UID:
         begin
 //          s := str.re
-          s := getString(str);
-           if s = myUID then
+      {$IFDEF UID_IS_UNICODE}
+            uid := UnUTF(getString(str));
+      {$ELSE ansi}
+            uid := getString(str);
+      {$ENDIF UID_IS_UNICODE}
+            if Length(uid) > 0 then
+            if UID = myUID then
              begin
                ev.who  := myUID;
                ev.whom := fn;
                ev.isSend := 1;
              end
             else
-             ev.who := s;
-        end;
-      end;
-    cur:=next;
+                begin
+                  ev.who := UID;
+                end;
+          end;
+        EI_WID:
+          begin
+            SetLength(s, len);
+            str.Read(s[1], len);
+            ev.wid := SGUID2rGUID(s);
+          end;
+       end;
+      cur := next;
+
     end;
   end; // parseExtraInfo
 var
-  str2 : TStream;
-//  thisCnt, thisCnt2 : TRnQcontact;
-  Cnt1I, Cnt2I : Int64;
-//  cur:integer;
+  str2: TStream;
+//  thisCnt, thisCnt2: TRnQcontact;
+  Cnt1I, Cnt2I: Int64;
+//  cur: integer;
 var
-  cryptMode :byte;
-  len, rows : Int64;
-  s : AnsiString;
-//  iu : TUID;
-  myNum : Integer; 
-  i : Integer;
-  a, b : Integer;
-  DecrKey : Integer;
-  curPos : Int64;
+  cryptMode: byte;
+  len, rows: Int64;
+  s: AnsiString;
+//  iu: TUID;
+  myNum: Integer;
+  i: Integer;
+  a, b: Integer;
+  DecrKey: Integer;
+  curPos: Int64;
 begin
 //  loading := True;
  try
@@ -1161,7 +869,7 @@ begin
           parseExtrainfo;
           ev.Bin      := getString(str);
     //      add(@ev);
-         if ev.kind in [EK_url,EK_msg,EK_authReq,EK_automsg] then
+         if ev.kind in [EK_url, EK_msg, EK_authReq, EK_automsg] then
           begin
            s := decritted(ev.Bin, DecrKey);
            ev.Bin := '';
@@ -1236,7 +944,7 @@ begin
   curPos := str.Position;
   until (curPos >=len);
 //loaded:=TRUE;
-result:=TRUE;
+result := TRUE;
  finally
    if Assigned(str) then
      str.Free;
@@ -1245,9 +953,9 @@ result:=TRUE;
 end; // fromStream
 
 
-function LoadHistory(path : string; var res : String) : Boolean;
+function LoadHistory(path: string; var res: String): Boolean;
 var
-  sr:TsearchRec;
+  sr: TsearchRec;
 begin
   res := '';
     if FindFirst(path + 'History\*.', faAnyFile, sr) = 0 then
@@ -1265,11 +973,11 @@ begin
  Result := True;
 end;
 
-Function ImportFromAndrq(srcPth : string; memo : TMemo) : Boolean;
+Function ImportFromAndrq(srcPth: string; memo: TMemo): Boolean;
 var
-  s : string;
-  pth : String;
-  i, j : Integer;
+  s: string;
+  pth: String;
+  i, j: Integer;
 begin
 //  Result := false;
 //  timeformat_log := shortdateformat+' hh:nn:ss.zzz';

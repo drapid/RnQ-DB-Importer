@@ -53,7 +53,7 @@ const
   EK_Xstatusreq   = 18;
   EK_last         = 18;
 type
-  Thevent= class
+  Thevent = class
     isSend     : byte;
     IM         : byte;
     flags      : Integer;
@@ -61,8 +61,8 @@ type
     kind       : integer;
     fpos       : integer;
     expires    : integer;  // tenths of second, negative if permanent
-    who        : AnsiString;
-    whom       : AnsiString;
+    who        : String;
+    whom       : String;
     when       : TdateTime;
     cryptMode  : byte;
 //    cl         :Tcontactlist;
@@ -70,6 +70,7 @@ type
 //    Text       : UnicodeString;
     TextUTF    : AnsiString;
     Bin        : RawByteString;
+    wid        : RawByteString;
   end;
 
   procedure beforeInsertHistory;
@@ -193,14 +194,14 @@ var
 //   InsHistStmt: TDISQLite3Statement;
 //  InsHistStmt: TSQLiteStmt;
 //  InsHistStmt: SQLite3_Stmt;
-//  InsSysCListStmt : SQLite3_Stmt;
+//  InsSysCListStmt: SQLite3_Stmt;
   InsHistStmt: TSQLite3StmtHandle;
-  InsSysCListStmt : TSQLite3StmtHandle;
+  InsSysCListStmt: TSQLite3StmtHandle;
 
 procedure beforeInsertHistory;
 var
-  sql : UTF8String;
-  Tail : PAnsiChar;
+  sql: UTF8String;
+  Tail: PAnsiChar;
 begin
 //  sqlite3_exec_fast(mineDB.Handle, 'BEGIN TRANSACTION');
   execSQL(mineDB, 'BEGIN TRANSACTION');
@@ -220,8 +221,8 @@ end;
 
 function InsertHist(ChatName: String; ev: Thevent): Boolean;
 var
-  sel, sub : string;
-//  msg, inf : String;
+  sel, sub: string;
+//  msg, inf: String;
 //  I: Integer;
   res: Integer;
   ChatNameU: RawByteString;
@@ -249,19 +250,20 @@ begin
          ChatNameU := UTF8Encode(ChatName);
          SQLite3_Bind_Text(InsHistStmt, 1, PAnsiChar(ChatNameU), Length(ChatNameU), nil);
          sqlite3_bind_Double(InsHistStmt, 2, DateTimeToJulianDate(ev.when));
-         SQLite3_Bind_text(InsHistStmt, 3, PAnsiChar(ev.who), Length(ev.who), nil);
+         SQLite3_Bind_Text16(InsHistStmt, 3, PChar(ev.who), Length(ev.who)* SizeOf(CHAR), nil);
          SQLite3_Bind_Int(InsHistStmt, 4, ev.kind);
          SQLite3_Bind_Int(InsHistStmt, 5, ev.flags);
          SQLite3_Bind_Blob(InsHistStmt, 6, PAnsiChar(ev.Bin), Length(ev.Bin), nil);
          SQLite3_Bind_text(InsHistStmt, 7, PAnsiChar(ev.TextUTF), Length(ev.TextUTF), nil);
 //         if ev.isSend = 1 then
-           SQLite3_Bind_Int(InsHistStmt, 8, ev.isSend)
+           SQLite3_Bind_Int(InsHistStmt, 8, ev.isSend);
 //          else
 //           SQLite3_Bind_Null(InsHistStmt, 8);
 //         SQLite3_Bind_Int(InsHistStmt, 3, ev.im);
 
 //         SQLite3_Bind_text16(InsHistStmt, 9, PWideChar(ev.Text), (Length(ev.Text)+1)*2, nil);
 
+         SQLite3_Bind_Blob(InsHistStmt, 9, PAnsiChar(ev.wid), Length(ev.wid), nil);
 //        Stmt.Bind_Str(1, Field);
 //         case Fields[i].val_type of
 //           1: Stmt.bind_Str(i+1, Fields[i].val1);
